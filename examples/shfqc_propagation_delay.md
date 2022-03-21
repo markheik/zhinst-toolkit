@@ -8,7 +8,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.13.7
   kernelspec:
-    display_name: Python 3 (ipykernel)
+    display_name: Python 3
     language: python
     name: python3
 ---
@@ -34,28 +34,29 @@ device = session.connect_device("DEV12073")
 ### Parameter
 
 ```python
-number_of_qubits = 4
+qachannel_center_frequency = 4.1e9
+qachannel_power_in = 5
+qachannel_power_out = 0
 
-qachannel_number = 0
-qachannel_center_frequency = 7.1e9
-qachannel_power_in = -50
-qachannel_power_out = -30
-
-max_amplitude_readout = 2.5 / number_of_qubits * 0.98
+max_amplitude_readout = 0.8
 ```
 
+<!-- #region tags=[] -->
 ## Device configuration
+<!-- #endregion -->
 
 ```python
 device.qachannels[0].configure_channel(
     center_frequency=qachannel_center_frequency,
     input_range=qachannel_power_in,
     output_range=qachannel_power_out,
-    mode=SHFQAChannelMode.READOUT,
+    mode=SHFQAChannelMode.SPECTROSCOPY,
 )
 ```
 
-## Setup
+<!-- #region tags=[] -->
+## Prepare readout pulse at one frequency
+<!-- #endregion -->
 
 ```python
 from shfqc_helper import generate_flat_top_gaussian
@@ -63,8 +64,7 @@ from zhinst.deviceutils.shfqa import SHFQA_SAMPLING_FREQUENCY
 
 envelope_duration = 1.0e-6
 envelope_rise_fall_time = 0.05e-6
-qubit_readout_frequency = 407e6
-envelope_frequencies = [qubit_readout_frequency + 100e6]
+envelope_frequencies = [100e6]
 
 probe_pulse = generate_flat_top_gaussian(
     envelope_frequencies,
@@ -73,17 +73,20 @@ probe_pulse = generate_flat_top_gaussian(
     SHFQA_SAMPLING_FREQUENCY,
     scaling=0.95,
 )
+
+device.qachannels[0].spectroscopy.envelope.wave(probe_pulse[0])
+
 ```
 
-## Take propagation Delay Measurement
+## Take propagation delay measurement
 
 ```python
 from shfqc_helper import set_trigger_loopback, clear_trigger_loopback
 spectroscopy_delay = 0
 pulse_envelope = probe_pulse[0]
-envelope_delay = 0e-9
+envelope_delay = 0
 scope_channel = 0
-num_avg = 2 * 0
+num_avg = 2**16
 
 trigger_input = "channel0_trigger_input0"
 # trigger_input = "software_trigger0"
@@ -133,30 +136,20 @@ device.qachannels[0].input.on(0)
 device.qachannels[0].output.on(0)
 ```
 
+## Plot measured pulse trace
+
 ```python
 import matplotlib.pyplot as plt
 import numpy as np
 
-interactive = 1
-if interactive ==1:
-    %matplotlib widget
-    figsize=(12,5)
-    font_large=15
-    font_medium=10
-else:
-    %matplotlib inline
-    figsize=(24,10)
-    font_large=30
-    font_medium=20
-
-fig = plt.figure(figsize=figsize)
+fig = plt.figure(figsize=(24,10))
 time_ticks_us = 1.0e6 * np.array(range(len(scope_trace[0]))) / SHFQA_SAMPLING_FREQUENCY
 plt.plot(time_ticks_us, np.real(scope_trace[0]))
 plt.plot(time_ticks_us, np.imag(scope_trace[0]))
-plt.title("Resonator probe pulse", fontsize=font_large)
-plt.xlabel(r"t [$\mu$s]", fontsize=font_medium)
-plt.ylabel("scope samples [V]", fontsize=font_medium)
-plt.legend(["real", "imag"], fontsize=font_medium)
+plt.title("Resonator probe pulse", fontsize=30)
+plt.xlabel(r"t [$\mu$s]", fontsize=20)
+plt.ylabel("scope samples [V]", fontsize=20)
+plt.legend(["real", "imag"], fontsize=20)
 plt.grid()
 plt.show()
 ```

@@ -96,18 +96,25 @@ def clear_trigger_loopback(session, device):
 
 def run_experiment(device, sgchannel_number, number_of_qubits, reenable=False):
     if reenable:
-        device.qachannels[0].readout.run()
-        device.qachannels[0].generator.enable_sequencer(single=True)
-
-    with device.set_transaction():
-        device.qachannels[0].input.on(1)
-        device.qachannels[0].output.on(1)
-        for qubit in range(number_of_qubits):
-            device.sgchannels[sgchannel_number[qubit]].output.on(1)
+        with device.set_transaction():
+            device.qachannels[0].readout.run()
+            device.qachannels[0].generator.enable_sequencer(single=True)
+            device.qachannels[0].input.on(1)
+            device.qachannels[0].output.on(1)
+            for qubit in range(number_of_qubits):
+                channel=sgchannel_number[qubit]
+                device.sgchannels[channel].awg.enable(1)
+                device.sgchannels[channel].output.on(1)
+    else:
+        with device.set_transaction():
+            device.qachannels[0].input.on(1)
+            device.qachannels[0].output.on(1)
+            for qubit in range(number_of_qubits):
+                device.sgchannels[sgchannel_number[qubit]].output.on(1)
 
     device.start_continuous_sw_trigger(num_triggers=1, wait_time=2e-3)
 
-    readout_results = device.qachannels[0].readout.read(timeout=200)
+    readout_results = device.qachannels[0].readout.read(timeout=100)
 
     with device.set_transaction():
         device.qachannels[0].input.on(0)

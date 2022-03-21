@@ -8,7 +8,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.13.7
   kernelspec:
-    display_name: Python 3 (ipykernel)
+    display_name: Python 3
     language: python
     name: python3
 ---
@@ -34,20 +34,19 @@ device = session.connect_device("DEV12073")
 ### Parameter
 
 ```python
-number_of_qubits = 4
+number_of_qubits = 2
 
-qachannel_number = 0
 qachannel_center_frequency = 7.1e9
-qachannel_power_in = -50
-qachannel_power_out = -30
+qachannel_power_in = 5
+qachannel_power_out = 0
 
-max_amplitude_readout = 2.5 / number_of_qubits * 0.98
+max_amplitude_readout = 1 / number_of_qubits * 0.98
 
 # Sweep Parameter
 qubit_readout_frequencies = [125e6, 402e6, -570e6, -157.5e6, -352e6]
 qubit_readout_widths = [20e6, 20e6, 20e6, 20e6, 20e6]
-number_amplitude_values = 10
-average_factor = 0.00000001
+number_amplitude_values = 2
+average_factor = 1e-6 # if set to 1, scales averages with amplitude
 ```
 
 ## Device configuration
@@ -57,17 +56,17 @@ device.qachannels[0].configure_channel(
     center_frequency=qachannel_center_frequency,
     input_range=qachannel_power_in,
     output_range=qachannel_power_out,
-    mode=SHFQAChannelMode.READOUT,
+    mode=SHFQAChannelMode.SPECTROSCOPY,
 )
 ```
 
 ## Sweeper configuration
 
 ```python
+# initiates sweeper parameters
 sweeper = session.modules.shfqa_sweeper
 sweeper.device(device)
 
-sweeper.rf.channel(qachannel_number)
 sweeper.rf.center_freq(qachannel_center_frequency)
 sweeper.rf.input_range(qachannel_power_in)
 sweeper.rf.output_range(qachannel_power_out)
@@ -79,10 +78,12 @@ sweeper.sweep.mapping("linear")
 sweeper.sweep.oscillator_gain(max_amplitude_readout)
 sweeper.sweep.mode(True)
 
-sweeper.average.integration_time(10000e-6)
+sweeper.average.integration_time(1000e-6)
 sweeper.average.num_averages(1)
 sweeper.average.mode("cyclic")
 ```
+
+## Measure each resonator with different powers
 
 ```python
 import sys
@@ -99,7 +100,7 @@ relative_amplitude_values = np.linspace(
 device.qachannels[0].input.on(1)
 device.qachannels[0].output.on(1)
 
-print(f"sweep {number_of_qubits} qubits at {number_amplitude_values} ampitudes")
+print(f"sweep {number_of_qubits} qubits at {number_amplitude_values} amplitudes")
 
 for qubit in range(number_of_qubits):
     sweeper.sweep.start_freq(
@@ -108,7 +109,6 @@ for qubit in range(number_of_qubits):
     sweeper.sweep.stop_freq(
         qubit_readout_frequencies[qubit] + qubit_readout_widths[qubit]
     )
-    sweeper.sweep.num_points(101)
 
     for i, amplitude in enumerate(relative_amplitude_values):
         sweeper.sweep.oscillator_gain(amplitude)
@@ -127,28 +127,26 @@ device.qachannels[0].output.on(0)
 
 ```
 
+# Note to Tobias:
+1. we had a problem here with the correct display of the data of the scans, somehow the axes did not align properly with the measurements -> could you crosscheck? if there is a simple way of cleaning up the plots, that would of course also be great
+2. Above you introduced the function sweeper.sweep.mode -> this I find a bit unclear for a user, as it determines if the sequencer is used to sweep. use_sequencer -> in the sweeper API -> could we mirror this somehow in toolkit?
+3. with the saving of the data, something is wrong. looks like that append(sweeper.run) acts on all (qubit)entries of resonator_spectrum_data
+
+
+
+## Plot the data for each qubit
+
+```python
+resonator_spectrum_data['qubits'][0]==resonator_spectrum_data['qubits'][1]
+```
+
 ```python
 import matplotlib.pyplot as plt
 from shfqc_helper import voltage_to_power_dBm
-import pickle
 
-
-saveloc="PSIMeasurements/indvspec"
-
-with open(saveloc+".pkl", "wb") as f:
-    pickle.dump(resonator_spectrum_data, f)
-
-interactive = 1
-if interactive ==1:
-    %matplotlib widget
-    figsize=(12,5)
-    font_large=15
-    font_medium=10
-else:
-    %matplotlib inline
-    figsize=(24,10)
-    font_large=30
-    font_medium=20
+figsize=(24,10)
+font_large=30
+font_medium=20
 
 num_points = sweeper.sweep.num_points()
 
@@ -173,7 +171,7 @@ for qubit in range(number_of_qubits):
         )
         y_data[amp_ind] = amplitude
         z_data[amp_ind] = spec_path["vector"]
-        slope = 0.54
+        slope = 0.035
         slope_array[amp_ind] = slope * x_data[amp_ind]
 
     fig, axs = plt.subplots(1, 2, figsize=figsize)
@@ -208,6 +206,5 @@ for qubit in range(number_of_qubits):
     cbar = fig.colorbar(color_phase, ax=axs[1])
     cbar.ax.tick_params(labelsize=font_medium)
 
-    plt.savefig(saveloc + f"{qubit}.png")
     plt.show()
 ```

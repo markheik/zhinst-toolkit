@@ -8,11 +8,10 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.13.7
   kernelspec:
-    display_name: Python 3 (ipykernel)
+    display_name: Python 3
     language: python
     name: python3
 ---
-
 
 <!-- #region -->
 # Qubit Spectroscopy
@@ -28,8 +27,11 @@ Requirements:
 ```python
 from zhinst.toolkit import Session, SHFQAChannelMode
 
-session = Session("localhost")
-device = session.connect_device("DEV12073")
+#session = Session("localhost")
+#device = session.connect_device("DEV12073")
+
+session = Session("zicrunch2",server_port=8114)
+device = session.connect_device("DEV12108")
 ```
 
 ## Device configuration
@@ -39,12 +41,11 @@ import numpy as np
 number_of_qubits = 4
 
 # configure qa channels
-qachannel_number = 0
 qachannel_center_frequency = 7.1e9
-qachannel_power_in = -50
-qachannel_power_out = -30
+qachannel_power_in = 5
+qachannel_power_out = 0
 
-max_amplitude_readout = 2.5 / number_of_qubits * 0.98
+max_amplitude_readout = 1 / number_of_qubits * 0.98
 
 device.qachannels[0].configure_channel(
     center_frequency=qachannel_center_frequency,
@@ -56,7 +57,7 @@ device.qachannels[0].configure_channel(
 # configure sg channels
 sgchannel_number = list(range(number_of_qubits))
 sgchannel_center_frequency = [4.7e9, 4.7e9, 3.2e9, 3.2e9]
-sgchannel_power_out = [-25] * number_of_qubits
+sgchannel_power_out = [0] * number_of_qubits
 sgchannel_trigger_input = 0
 
 with device.set_transaction():
@@ -92,7 +93,7 @@ integration_time_qubit_spectroscopy = 20e-3
 max_drive_strength=[1,1,0.5,0.5,0.5]
 qubit_drive_frequency = [0] * number_of_qubits
 
-min_max_frequencies=[[150,350e6],[150e6,350e6],[-50e6,00e6],[200e6,400e6],[25e6,100e6]]
+min_max_frequencies=[[-150e6,0e6],[150e6,350e6],[-50e6,00e6],[200e6,400e6],[25e6,100e6]]
 ```
 
 ```python
@@ -160,7 +161,7 @@ waitDigTrigger(1);              // wait for software trigger to start experiment
 
 repeat({num_sweep_steps_qubit_spectroscopy}) {{
     repeat({averages_per_sweep_step}) {{
-        playZero(4016);
+        playZero(4048);
         startQA({pulse_startQA_string}, {weight_startQA_string}, true, 0, 0x0);
     }}
 
@@ -208,6 +209,7 @@ for(var i = 0; i < {num_sweep_steps_qubit_spectroscopy}; i++) {{
     )
 
     device.sgchannels[channel].awg.load_sequencer_program(seqc_program)
+    device.sgchannels[channel].awg.enable(1)
 ```
 
 ## Measurements
@@ -222,42 +224,23 @@ readout_results = run_experiment(device, sgchannel_number, number_of_qubits, ree
 ```python
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
-
-saveloc="PSIMeasurements/Decay1"
-
-with open(saveloc+".pkl", "wb") as f:
-    pickle.dump(readout_results, f)
-
-interactive = 1
-if interactive ==1:
-    %matplotlib widget
-    figsize=(12,5)
-    font_large=15
-    font_medium=10
-else:
-    %matplotlib inline
-    figsize=(24,10)
-    font_large=30
-    font_medium=20
 
 for qubit in range(number_of_qubits):
     x_axis = np.linspace(min_max_frequencies[qubit][0],min_max_frequencies[qubit][1],num_sweep_steps_qubit_spectroscopy)/10**6
 
-    fig3, axs = plt.subplots(1, 2, figsize=figsize)
-    fig3.suptitle(f"Qubit {qubit+1}", fontsize=font_large)
+    fig3, axs = plt.subplots(1, 2, figsize=(24,10))
+    fig3.suptitle(f"Qubit {qubit+1}", fontsize=30)
     axs[0].plot(x_axis, np.abs(readout_results[qubit]))
-    axs[0].set_title("amplitude [dBm]", fontsize=font_medium)
-    axs[0].set_xlabel("qubit drive frequency [MHz]", fontsize=font_medium)
-    axs[0].set_ylabel("amplitude [A.U.]", fontsize=font_medium)
-    axs[0].tick_params(axis="both", which="major", labelsize=font_medium)
+    axs[0].set_title("amplitude [dBm]", fontsize=20)
+    axs[0].set_xlabel("qubit drive frequency [MHz]", fontsize=20)
+    axs[0].set_ylabel("amplitude [A.U.]", fontsize=20)
+    axs[0].tick_params(axis="both", which="major", labelsize=20)
 
     axs[1].plot(x_axis, np.unwrap(np.angle(readout_results[qubit])))
-    axs[1].set_title("phase [rad]", fontsize=font_medium)
-    axs[1].set_xlabel("qubit drive frequency [MHz]", fontsize=font_medium)
-    axs[1].set_ylabel("phase [rad]", fontsize=font_medium)
-    axs[1].tick_params(axis="both", which="major", labelsize=font_medium)
+    axs[1].set_title("phase [rad]", fontsize=20)
+    axs[1].set_xlabel("qubit drive frequency [MHz]", fontsize=20)
+    axs[1].set_ylabel("phase [rad]", fontsize=20)
+    axs[1].tick_params(axis="both", which="major", labelsize=20)
 
-    plt.savefig(saveloc + f"{qubit}.png")
     plt.show()
 ```

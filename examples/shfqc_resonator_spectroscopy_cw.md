@@ -8,7 +8,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.13.7
   kernelspec:
-    display_name: Python 3 (ipykernel)
+    display_name: Python 3
     language: python
     name: python3
 ---
@@ -34,14 +34,11 @@ device = session.connect_device("DEV12073")
 ### Parameter
 
 ```python
-number_of_qubits = 4
-
-qachannel_number = 0
 qachannel_center_frequency = 7.1e9
-qachannel_power_in = -50
-qachannel_power_out = -30
+qachannel_power_in = 5
+qachannel_power_out = 0
 
-max_amplitude_readout = 2.5 / number_of_qubits * 0.98
+max_amplitude_readout = 1
 ```
 
 ## Device configuration
@@ -51,7 +48,7 @@ device.qachannels[0].configure_channel(
     center_frequency=qachannel_center_frequency,
     input_range=qachannel_power_in,
     output_range=qachannel_power_out,
-    mode=SHFQAChannelMode.READOUT,
+    mode=SHFQAChannelMode.SPECTROSCOPY,
 )
 ```
 
@@ -61,7 +58,6 @@ device.qachannels[0].configure_channel(
 sweeper = session.modules.shfqa_sweeper
 sweeper.device(device)
 
-sweeper.rf.channel(qachannel_number)
 sweeper.rf.center_freq(qachannel_center_frequency)
 sweeper.rf.input_range(qachannel_power_in)
 sweeper.rf.output_range(qachannel_power_out)
@@ -93,56 +89,30 @@ device.qachannels[0].output.on(0)
 # Results
 
 ```python
+# use sweeper plotting function
+sweeper.plot()
+```
+
+```python
+# custom-made plot with data conversion and slope compensation
+
+slope = 0.03
+
 import matplotlib.pyplot as plt
 from shfqc_helper import voltage_to_power_dBm, voltage_to_phase
-import pickle
-
-
-saveloc="PSIMeasurements/largespec"
-
-with open(saveloc+".pkl", "wb") as f:
-    pickle.dump(wide_resonator_spectrum, f)
-
-interactive = 1
-if interactive ==1:
-    %matplotlib widget
-    figsize=(12,5)
-    fontsize=15
-else:
-    %matplotlib inline
-    figsize=(24,10)
-    fontsize=30
 
 xaxis = sweeper.get_offset_freq_vector() / 10 ** 6
-fig1, axs = plt.subplots(1, 2, figsize=figsize)
+fig1, axs = plt.subplots(1, 2, figsize=(24,10))
 axs[0].plot(xaxis, voltage_to_power_dBm(wide_resonator_spectrum["vector"]))
-axs[0].set_xlabel("frequency [MHz]", fontsize=fontsize)
-axs[0].set_ylabel("amplitude [dBm]", fontsize=fontsize)
-axs[0].tick_params(axis="both", which="major", labelsize=fontsize)
+axs[0].set_xlabel("frequency [MHz]", fontsize=30)
+axs[0].set_ylabel("amplitude [dBm]", fontsize=30)
+axs[0].tick_params(axis="both", which="major", labelsize=30)
 
-slope = 0.54
 axs[1].plot(
     xaxis, voltage_to_phase(wide_resonator_spectrum["vector"]) + xaxis * slope
 )
-axs[1].set_xlabel("frequency [MHz]", fontsize=fontsize)
-axs[1].set_ylabel("phase [rad]", fontsize=fontsize)
-axs[1].tick_params(axis="both", which="major", labelsize=fontsize)
-
-plt.savefig(saveloc + ".png")
+axs[1].set_xlabel("frequency [MHz]", fontsize=30)
+axs[1].set_ylabel("phase [rad]", fontsize=30)
+axs[1].tick_params(axis="both", which="major", labelsize=30)
 plt.show()
-```
-
-```python
-import matplotlib.pyplot as plt
-import numpy as np
-
-%matplotlib widget
-
-plt.figure(1)
-plt.plot(np.sin(np.linspace(0, 20, 100)))
-plt.show()
-```
-
-```python
-
 ```
