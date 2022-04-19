@@ -6,14 +6,35 @@ on:
     - "*.*.*"
 
 jobs:
-  build:
-    name: "Build"
   release:
-    - name: Publish a Python distribution to PyPI
-    if: startsWith(github.ref, 'refs/tags/')
-    uses: https://github.com/markheik/zhinst-toolkit@main
-    with:
-      user: __token__
-      password: ${{ secrets.test_pypi }}
-      repository_url: https://test.pypi.org/legacy/
-      packages_dir: src
+    name: "Build Python ${{ matrix.python-version }}"
+    runs-on: "ubuntu-latest"
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    steps:
+      - uses: "actions/checkout@v2"
+      - uses: "actions/setup-python@v1"
+        with:
+          python-version: "${{ matrix.python-version }}"
+
+      - name: "Install build dependencies"
+        run: |
+          set -xe
+          python -VV
+          python -m site
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade -r requirements.txt
+          python -m pip install .
+          pip install build
+      - name: "Build source distribution"
+        run: python -m build --sdist
+
+      - name: Publish a Python distribution to PyPI
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: https://github.com/markheik/zhinst-toolkit@pypi_upload_ci
+        with:
+          user: __token__
+          password: ${{ secrets.test_pypi }}
+          repository_url: https://test.pypi.org/legacy/
+          packages_dir: dist
