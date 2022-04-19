@@ -6,7 +6,7 @@ on:
     - "*.*.*"
 
 jobs:
-  release:
+  release-package:
     name: "Build Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-latest"
     strategy:
