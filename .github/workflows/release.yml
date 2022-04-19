@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    tags: 
+    - "*.*.*"
+
+jobs:
+  build:
+    name: "Build"
+  release:
+    - name: Publish a Python distribution to PyPI
+    if: startsWith(github.ref, 'refs/tags/')
+    uses: https://github.com/markheik/zhinst-toolkit@main
+    with:
+      user: __token__
+      password: ${{ secrets.test_pypi }}
+      repository_url: https://test.pypi.org/legacy/
+      packages_dir: src
