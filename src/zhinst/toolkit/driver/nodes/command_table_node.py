@@ -1,5 +1,6 @@
 """ zhinst-toolkit Command Table Node adaptions."""
 import json
+import string
 import typing as t
 from functools import lru_cache
 from pathlib import Path
@@ -9,6 +10,7 @@ from zhinst.toolkit.nodetree import Node, NodeTree
 
 _CT_RESOURCE_PATH = Path(__file__).parent.parent.parent / "resources"
 _CT_FILES = {
+    "shfqc": _CT_RESOURCE_PATH / "ct_schema_shfsg.json",
     "shfsg": _CT_RESOURCE_PATH / "ct_schema_shfsg.json",
     "hdawg": _CT_RESOURCE_PATH / "ct_schema_hdawg.json",
 }
@@ -59,7 +61,8 @@ class CommandTableNode(Node):
             JSON validation schema for the device command tables.
         """
         # TODO: Load from device once available.
-        with open(_CT_FILES[self._device_type.lower()]) as f:
+        device_type_striped = self._device_type.lower().rstrip(string.digits)
+        with open(_CT_FILES[device_type_striped]) as f:
             return json.load(f)
 
     def upload_to_device(
