@@ -22,7 +22,7 @@ jobs:
           python -VV
           python -m site
           python -m pip install --upgrade -r docs/requirements.txt
-          ../examples/generate_notebooks.sh
+          bash examples/generate_notebooks.sh
       - name: Store notebooks artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -30,6 +30,7 @@ jobs:
           path: examples/*.ipynb
 
   docs:
+    needs: build-examples
     name: "Build docs"
     runs-on: "ubuntu-latest"
     steps:
@@ -102,7 +103,7 @@ jobs:
           path: dist
 
   PyPi:
-    needs: build-distribution
+    needs: ["build-distribution", "docs"]
     name: "Publish to PyPi"
     runs-on: "ubuntu-latest"
     steps:
