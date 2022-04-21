@@ -22,7 +22,7 @@ jobs:
           python -m site
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install --upgrade -r requirements.txt
-          python -m pip install --upgrade docs/requirements.txt
+          python -m pip install --upgrade -r docs/requirements.txt
           python -m pip install .
           cd docs
           make html
@@ -32,7 +32,12 @@ jobs:
         with:
           name: source-docs
           path: build/html
-
+      - name: Store notebooks
+        uses: actions/upload-artifact@v2
+        with:
+          name: examples-notebooks
+          path: examples/*.ipynb
+  
   build-distribution:
     name: "Build distribution"
     runs-on: "ubuntu-latest"
