@@ -25,15 +25,14 @@ jobs:
           python -m pip install --upgrade -r requirements.txt
           python -m pip install --upgrade -r docs/requirements.txt
           python -m pip install .
-          cd docs
-          make html
+          ./docs/make html
 
-      - name: Store artifacts
+      - name: Store docs artifacts
         uses: actions/upload-artifact@v2
         with:
           name: source-docs
-          path: build/html
-      - name: Store notebooks
+          path: docs/build/html
+      - name: Store notebooks artifacts
         uses: actions/upload-artifact@v2
         with:
           name: examples-notebooks
