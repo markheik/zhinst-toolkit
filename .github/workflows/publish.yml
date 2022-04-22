@@ -59,7 +59,6 @@ jobs:
       - name: "Make docs"
         run: |
           cd docs && make html
-          ls
       - name: Store docs artifacts
         uses: actions/upload-artifact@v2
         with:
