@@ -2,69 +2,9 @@ name: Publish to PyPi
 on:
   push:
     tags: 
-    - "*.*.*"
+    - "v*.*.*"
 
 jobs:
-  build-examples:
-    name: "Build examples"
-    runs-on: "ubuntu-latest"
-    steps:
-      - name: "Checkout tag/branch"
-        uses: "actions/checkout@v3"
-      - name: "Setup Python"
-        uses: "actions/setup-python@v3"
-        with:
-          python-version: "3.9"
-      - name: "Install build dependencies"
-        run: |
-          sudo apt install pandoc
-          set -xe
-          python -VV
-          python -m site
-          python -m pip install --upgrade -r docs/requirements.txt
-          bash examples/generate_notebooks.sh
-      - name: Store notebooks artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: examples-notebooks
-          path: examples/*.ipynb
-
-  docs:
-    needs: build-examples
-    name: "Build docs"
-    runs-on: "ubuntu-latest"
-    steps:
-      - name: "Checkout tag/branch"
-        uses: "actions/checkout@v3"
-      - name: "Setup Python"
-        uses: "actions/setup-python@v3"
-        with:
-          python-version: "3.9"
-      - name: "Install build dependencies"
-        run: |
-          sudo apt install pandoc
-          set -xe
-          python -VV
-          python -m site
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install --upgrade -r requirements.txt
-          python -m pip install --upgrade -r docs/requirements.txt
-          python -m pip install .
-
-      - name: Download examples
-        uses: actions/download-artifact@v2
-        with:
-          name: examples-notebooks
-          path: examples
-      - name: "Make docs"
-        run: |
-          cd docs && make html
-      - name: Store docs artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: source-docs
-          path: docs/build/html
-  
   build-distribution:
     name: "Build distribution"
     runs-on: "ubuntu-latest"
