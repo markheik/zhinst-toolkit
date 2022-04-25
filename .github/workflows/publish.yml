@@ -42,7 +42,7 @@ jobs:
           path: dist
 
   PyPi:
-    needs: ["build-distribution", "docs"]
+    needs: ["build-distribution"]
     name: "Publish to PyPi"
     runs-on: "ubuntu-latest"
     steps:
