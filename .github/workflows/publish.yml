@@ -33,7 +33,9 @@ jobs:
         run: |
           python -m venv build_env --clear
           source build_env/bin/activate
-          bash build_tools/test_wheels.sh
+          version=${${{ github.ref_name }}%?} # removes the first character (v)
+          echo $version
+          bash build_tools/test_wheels.sh $version
 
       - name: Store artifacts
         uses: actions/upload-artifact@v2
