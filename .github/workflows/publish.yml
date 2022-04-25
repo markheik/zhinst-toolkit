@@ -33,10 +33,7 @@ jobs:
         run: |
           python -m venv build_env --clear
           source build_env/bin/activate
-          tag_ver=${{ github.ref_name }}
-          version=${tag_ver%?} # removes the first character (v)
-          echo $version
-          bash build_tools/test_wheels.sh $version
+          bash build_tools/test_wheels.sh ${{ github.ref_name }}
 
       - name: Store artifacts
         uses: actions/upload-artifact@v2
